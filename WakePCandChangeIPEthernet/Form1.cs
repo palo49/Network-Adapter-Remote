@@ -48,11 +48,49 @@ namespace WakePCandChangeIPEthernet
             bgWorkerRemote.RunWorkerAsync();
         }
 
+        private void updateInfo(string selectedAdapterName)
+        {
+            NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
+            foreach (NetworkInterface adapter in nics)
+            {
+                if (adapter.Name == selectedAdapterName)
+                {
+                    IPInterfaceProperties ipProperties = adapter.GetIPProperties();
+
+                    foreach (UnicastIPAddressInformation ipInfo in ipProperties.UnicastAddresses)
+                    {
+                        if (ipInfo.Address.AddressFamily == AddressFamily.InterNetwork)
+                        {
+                            // IP adresa
+                            string ipAddress = ipInfo.Address.ToString();
+                            lblIPv4.Text = ipAddress;
+
+                            // Mask of Subnet
+                            string subnetMask = ipInfo.IPv4Mask.ToString();
+                            lblSubnet.Text = subnetMask;
+
+                        }
+                    }
+
+                    // Default Gateway
+                    GatewayIPAddressInformationCollection gatewayAddresses = ipProperties.GatewayAddresses;
+                    if (gatewayAddresses.Count > 0)
+                    {
+                        string gateway = gatewayAddresses[0].Address.ToString();
+                        lblGateway.Text = gateway;
+                    }
+                    break; // Pokud jsme našli odpovídající adaptér, ukončíme cyklus.
+                }
+            }
+        }
+
         private void cmbAdapters_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (cmbAdapters.SelectedIndex >= 0) {
                 txtIPv4.ReadOnly = txtSubnetMask.ReadOnly = txtGateway.ReadOnly = false;
 
+                string selectedAdapterName = cmbAdapters.SelectedItem.ToString();
+                updateInfo(selectedAdapterName);
             }
         }
 
@@ -63,7 +101,7 @@ namespace WakePCandChangeIPEthernet
 
         private void btnChange_Click(object sender, EventArgs e)
         {
-            if (txtIPv4.Text != string.Empty && txtSubnetMask.Text!= string.Empty && txtGateway.Text != string.Empty) {
+            if (txtIPv4.Text != string.Empty && txtSubnetMask.Text!= string.Empty) {
                 try
                 {
                     if (cmbAdapters.SelectedIndex >= 0)
@@ -150,7 +188,21 @@ namespace WakePCandChangeIPEthernet
 
         private void txtGateway_TextChanged(object sender, EventArgs e)
         {
-            lblRemoteTitle.Text = "Server/PC status (" + txtGateway.Text + ")";
+            lblRemoteTitle.Text = "Remote status (" + txtGateway.Text + ")";
+        }
+
+        private void btnReloadInfo_Click(object sender, EventArgs e)
+        {
+            if (cmbAdapters.SelectedIndex >= 0)
+            {
+                string selectedAdapterName = cmbAdapters.SelectedItem.ToString();
+                updateInfo(selectedAdapterName);
+            }
+        }
+
+        private void btnSubnetDefault_Click(object sender, EventArgs e)
+        {
+            txtSubnetMask.Text = "255.255.255.0";
         }
     }
 }
